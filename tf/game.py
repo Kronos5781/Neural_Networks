@@ -1,10 +1,12 @@
 import pygame
 from pygame.locals import *
 import snake
+import hud
+import food
 
 class SnakeGame:
 
-    def __init__(self, SCREEN_WIDTH, SCREEN_HEIGHT):
+    def __init__(self, SCREEN_WIDTH, SCREEN_HEIGHT, CELL_SIZE):
         # Init Pygame
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -19,107 +21,86 @@ class SnakeGame:
         # define game variables
         self.SCREEN_WIDTH = SCREEN_WIDTH
         self.SCREEN_HEIGHT = SCREEN_HEIGHT
-        self.CELL_SIZE = 20
-        self.update_snake = 0
-        self.food = [0, 0]
-        self.new_food = True
-        self.new_piece = [0, 0]
+        self.CELL_SIZE = CELL_SIZE
         self.game_over = False
-        self.clicked = False
-        self.score = 0
         self.run = False
 
         # define colors
-        self.BG_COL1 = (255, 200, 150)
-        self.BG_COL2 = (255, 200, 100)
-        self.BODY_INNER_COL = (50, 175, 25)
-        self.BODY_OUTER_COL = (100, 100, 200)
-        self.FOOD_COL = (200, 50, 50)
-        self.BLUE = (0, 0, 255)
-        self.RED = (255, 0, 0)
+        self.BG_COL1 = (255, 255, 255)
+        self.BG_COL2 = (230, 230, 255)
 
-        # Init Snake
+        # Init Objects
         self.my_snake = snake.Snake(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, 2, self.CELL_SIZE)
+        self.my_hud = hud.Hud(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.my_food = food.Food(400, 300, self.CELL_SIZE, self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
+
 
     def is_game_over(self):
-        if self.my_snake.snake_parts[0][0] < 0 or self.my_snake.snake_parts[0][0] > self.SCREEN_WIDTH or self.my_snake.snake_parts[0][1] < 0 or self.my_snake.snake_parts[0][1] > self.SCREEN_HEIGHT:
+
+        # Check if snake hits a wall
+        if self.my_snake.snake_parts[0][0] < 0 or self.my_snake.snake_parts[0][0] > self.SCREEN_WIDTH - self.CELL_SIZE or self.my_snake.snake_parts[0][1] < 0 or self.my_snake.snake_parts[0][1] > self.SCREEN_HEIGHT - self.CELL_SIZE:
             self.game_over = True
 
-    def draw_screen(self):
-        # Draw Background Color
-        for i in range(0, self.SCREEN_WIDTH, 2 * self.CELL_SIZE):
-            for j in range(0, self.SCREEN_HEIGHT, 2 *self.CELL_SIZE):
+        # Check if snake bites itself
+        head_count = 0
+        for x in self.my_snake.get_parts():
+            if self.my_snake.get_parts()[0] == x and head_count > 0:
+                self.game_over = True
+            head_count += 1
+
+    def get_input(self):
+        for event in pygame.event.get():
+            # Quit Game if X Button is pressed
+            if event.type == pygame.QUIT:
+                self.run = False
+            # Change direction according to arrow keys
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP and self.my_snake.get_direction() != 3:
+                    self.my_snake.set_direction(1)
+                if event.key == pygame.K_RIGHT and self.my_snake.get_direction() != 4:
+                    self.my_snake.set_direction(2)
+                if event.key == pygame.K_DOWN and self.my_snake.get_direction() != 1:
+                    self.my_snake.set_direction(3)
+                if event.key == pygame.K_LEFT and self.my_snake.get_direction() != 2:
+                    self.my_snake.set_direction(4)
+
+    def draw(self):
+        # Draw Background Grid
+        for i in range(0, self.SCREEN_HEIGHT, 2 * self.CELL_SIZE):
+            for j in range(0, self.SCREEN_WIDTH, 2 *self.CELL_SIZE):
                 pygame.draw.rect(self.screen, self.BG_COL1, (j, i, self.CELL_SIZE, self.CELL_SIZE))
-            for j in range(self.CELL_SIZE, self.SCREEN_HEIGHT, 2 *self.CELL_SIZE):
+            for j in range(self.CELL_SIZE, self.SCREEN_WIDTH, 2 *self.CELL_SIZE):
                 pygame.draw.rect(self.screen, self.BG_COL2, (j, i, self.CELL_SIZE, self.CELL_SIZE))
 
-            for j in range(self.CELL_SIZE, self.SCREEN_HEIGHT, 2 * self.CELL_SIZE):
+            for j in range(self.CELL_SIZE, self.SCREEN_WIDTH, 2 * self.CELL_SIZE):
                 pygame.draw.rect(self.screen, self.BG_COL1, (j ,i + self.CELL_SIZE, self.CELL_SIZE, self.CELL_SIZE))
-            for j in range(0, self.SCREEN_HEIGHT, 2 * self.CELL_SIZE):
+            for j in range(0, self.SCREEN_WIDTH, 2 * self.CELL_SIZE):
                 pygame.draw.rect(self.screen, self.BG_COL2, (j, i + self.CELL_SIZE, self.CELL_SIZE, self.CELL_SIZE))
-
-
-
-        # Draw FPS
-        self.screen.blit(self.update_fps(), (550, 0))
-
-        # Draw Score
-        self.draw_score()
-
-
-    def draw_snake(self):
-        head = 1
-        for x in self.my_snake.get_parts():
-            if head == 0:
-                pygame.draw.rect(self.screen, self.BODY_OUTER_COL, (x[0], x[1], self.CELL_SIZE, self.CELL_SIZE))
-                pygame.draw.rect(self.screen, self.BODY_INNER_COL, (x[0] + 1, x[1] + 1, self.CELL_SIZE - 2, self.CELL_SIZE - 2))
-            if head == 1:
-                pygame.draw.rect(self.screen, self.BODY_OUTER_COL, (x[0], x[1], self.CELL_SIZE, self.CELL_SIZE))
-                pygame.draw.rect(self.screen, (255, 0, 0), (x[0] + 1, x[1] + 1, self.CELL_SIZE - 2, self.CELL_SIZE - 2))
-                head = 0
-
-
-    def draw_score(self):
-        score_txt = 'Score: ' + str(self.score)
-        score_img = self.font.render(score_txt, True, self.BLUE)
-        self.screen.blit(score_img, (0, 0))
-
-    def update_fps(self):
-        fps = str(int(self.clock.get_fps()))
-        fps_text = self.font.render(fps, 1, pygame.Color("blue"))
-        return fps_text
 
     def main_game_loop(self):
         self.run = True
 
         while self.run:
 
-            # Call diverse Functions which update the Game State
-            self.my_snake.update()
-            self.draw_screen()
-            self.draw_snake()
+            # Get the input from Keyboard and Mouse
+            self.get_input()
+
+            # Call diverse Functions which update the Game Status
+            self.draw()
+            self.my_snake.update(self.screen, self.my_food.get_food_pos())
+            self.my_food.update(self.screen, self.my_snake.get_new_food())
+            self.my_hud.update(self.screen, self.clock)
+
+            self.my_hud.set_score(self.my_snake.get_food_eaten())
 
 
-            for event in pygame.event.get():
-                # Quit Game if X Button is pressed
-                if event.type == pygame.QUIT:
-                    self.run = False
-                # Change direction according to arrow keys
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP and self.my_snake.direction != 3:
-                        self.my_snake.direction = 1
-                    if event.key == pygame.K_RIGHT and self.my_snake.direction != 4:
-                        self.my_snake.direction = 2
-                    if event.key == pygame.K_DOWN and self.my_snake.direction != 1:
-                        self.my_snake.direction = 3
-                    if event.key == pygame.K_LEFT and self.my_snake.direction != 2:
-                        self.my_snake.direction = 4
-
-            # Update Display and set FPS
-            self.clock.tick(1)
-            pygame.display.update()
-
+            # Test if the Game is Over
             self.is_game_over()
+
+            # If game_over is true stop the game
             if self.game_over:
                 self.run = False
-                print("moos")
+
+            # Update Display and set FPS
+            self.clock.tick(15)
+            pygame.display.update()
