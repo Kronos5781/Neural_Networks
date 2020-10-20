@@ -7,13 +7,14 @@ class Snake:
         # Vars
         self.score = 0
         self.direction = ''
+        self.velocity = [0, 0]
         self.pos = (self.BOARD_SIZE[0] // 2, self.BOARD_SIZE[1] // 2)
         self.apple_location = None
         self.is_alive = False
 
         #Start Game
         self.init_snake('r')
-        self.init_vel('r', 1)
+        self.init_vel('r', (1, 0))
         self.generate_apple()
 
     def init_snake(self, starting_direction):
@@ -41,7 +42,7 @@ class Snake:
 
 
     def init_vel(self, starting_direction, initial_velocity):
-        if initial_velocity
+        self.velocity = initial_velocity
 
     def update(self):
         pass
