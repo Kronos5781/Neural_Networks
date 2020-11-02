@@ -1,12 +1,13 @@
+import sys
+import snake
+import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-import sys
-import snake
 
 # Constants
-SQUARE_SIZE = (20, 20)
-BOARD_SIZE = (20, 20)
+SQUARE_SIZE = (16, 16)
+BOARD_SIZE = (50, 50)
 
 
 # The Widget in which the Snake Game will be running
@@ -23,10 +24,12 @@ class SnakeWidget(QWidget):
         self.setFixedSize(self.board_size[0] * SQUARE_SIZE[0], self.BOARD_SIZE[1] * self.SQUARE_SIZE[1])
         self.new_game()
 
+        self.draw_vision = True
+
         # Set update Time and activate update Function
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update)
-        self.timer.start(100)
+        self.timer.start(80)
 
     def update(self):
         # Update The Snake and close the window if the snake is dead
@@ -74,6 +77,15 @@ class SnakeWidget(QWidget):
                              point[1] * SQUARE_SIZE[1],  # Upper left y-coord
                              SQUARE_SIZE[0],            # Width
                              SQUARE_SIZE[1])            # Height
+
+        # Draw the VisionLines
+        for i in range(0, 360, 45):
+            start_x = int(self.snake.snake_array[0][0] * SQUARE_SIZE[0] + SQUARE_SIZE[0]/2)
+            start_y = int(self.snake.snake_array[0][1] * SQUARE_SIZE[1] + SQUARE_SIZE[1]/2)
+            end_x = int(5000 * np.cos(i*np.pi/180.) + start_x)
+            end_y = int(5000 * -np.sin(i*np.pi/180.) + start_y)
+
+            painter.drawLine(start_x, start_y, end_x, end_y)
 
     def draw_apple(self, painter: QtGui.QPainter) -> None:
         # Check if there is an apple on the board
